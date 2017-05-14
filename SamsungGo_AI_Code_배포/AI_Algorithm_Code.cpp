@@ -18,6 +18,7 @@ int showBoard(int x, int y) : [x, y] 좌표에 무슨 돌이 존재하는지 보여주는 함수 (
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <Windows.h>
 #include <time.h>
 #include "Connect6Algo.h"
@@ -37,9 +38,6 @@ int threatTable[TABLESIZE]; // threat 계산된 패턴 테이블
 bool IsFirstMove = true;
 
 int power[11] = { 59049, 19683, 6561, 2187, 729, 243, 81, 27, 9, 3, 1 };
-
-FILE *fp;
-FILE *fp2;
 
 //-------------------------------------------------for calculating E-Value-------------------------------------------------------
 double const dValue[5] = { 0.99999909069 ,1.0f, 1.00000181862, 1.00000363725, 1.00000726562 };
@@ -63,9 +61,9 @@ int player;
 int num_entry = 0;
 int indicator_array = 0;
 
-Struct_Score_Point array_struct[36];
+Struct_Score_Point * array_struct[19*19];
 // 
-
+FILE * fp;
 
 
 float Search_Side(int tempX, int tempY, int horizontal, int vertical)
@@ -187,10 +185,13 @@ double Score_Point(int tempX, int tempY)
 }
 void Score_Matrix(int xLastTemp[], int yLastTemp[], int scanLength, int playerParam)
 {
+	Struct_Score_Point point;
+
 	player = playerParam;
 
 	int xMax, xMin, yMax, yMin;
 
+	EmptyQueue();
 	for (int i = 0; i < 2; i++)
 	{
 		if (xLastTemp[i] == -1 || yLastTemp[i] == -1)
@@ -229,6 +230,7 @@ void Score_Matrix(int xLastTemp[], int yLastTemp[], int scanLength, int playerPa
 			yMax = yLastTemp[i] + scanLength;
 		}
 
+		
 		// 만약 모든경우에 0이 아니면 어떻게 할 것인가? 예외처리 필요함
 		for (int tempX = xMin; tempX <= xMax; tempX++)
 		{
@@ -239,13 +241,11 @@ void Score_Matrix(int xLastTemp[], int yLastTemp[], int scanLength, int playerPa
 					scoreBoard[tempX][tempY] = Score_Point(tempX, tempY);
 
 					// ddd
-					struct Struct_Score_Point que_struct;
-					que_struct.Score_Point = Score_Point(tempX, tempY);
-					que_struct.tempX = tempX;
-					que_struct.tempY = tempY;
-					int num_entry = (tempX - xMin - 1)*(xMax - xMin) + (tempY - yMin - 1);
+					point.Score_Point = Score_Point(tempX, tempY);
+					point.tempX = tempX;
+					point.tempY = tempY;
 
-					enqueue(&num_entry, que_struct);
+					enqueue(&num_entry, point);
 				}
 			}
 		}
@@ -332,7 +332,6 @@ void myturn(int cnt) {
 
 	int curThreat;
 	int processThreat;
-	int queueCount;
 	int nextx[2], nexty[2]; // 아직 쓰지 않은 인성이가 생각중인 변수
 
 
@@ -342,8 +341,12 @@ void myturn(int cnt) {
 
 		CreateTable();
 		IsFirstMove = false;
+
+		//fopen_s(&fp, "./log.txt", "wt");
+		//fclose(fp);
 	}
 
+	
 	if (cnt == 1) {
 
 		oplastx[0] = oplasty[0] = 9;
@@ -357,6 +360,7 @@ void myturn(int cnt) {
 		y[0] = yNext;
 
 		UpdateBoard(x[0], y[0], 1);
+		
 		domymove(x, y, cnt);
 		return;
 
@@ -370,6 +374,9 @@ void myturn(int cnt) {
 		}
 	}
 
+	processThreat = CalTotalThreat(oplastx, oplasty, cnt);
+	
+
 	for (int i = 0; i < cnt; i++)
 	{
 		if (oplastx[i] == -1 || oplasty[i] == -1)
@@ -380,48 +387,34 @@ void myturn(int cnt) {
 
 		Initialize_ScoreBoard();
 		Score_Matrix(oplastx, oplasty, 2, 2);
-		Find_MaxE_Position(oplastx[i], oplasty[i], 2);
+		//Find_MaxE_Position(oplastx[i], oplasty[i], 2);
 
-		x[i] = xNext;
-		y[i] = yNext;
+		while (dequeue(&nextx[i], &nexty[i], &num_entry))
+		{
+			UpdateBoard(nextx[i], nexty[i], 1);
+
+			if (processThreat <= 0) {
+				break;
+			}
+
+			if (CalTotalThreat(oplastx, oplasty, cnt) < processThreat) {
+				processThreat = CalTotalThreat(oplastx, oplasty, cnt);
+				break;
+			}
+			else {
+				// 안좋은 값일 경우 0으로 회귀
+				UpdateBoard(nextx[i], nexty[i], 0);
+			}
+		}
+
+		
+
+		x[i] = nextx[i];
+		y[i] = nexty[i];
 
 		UpdateBoard(x[i], y[i], 1);
-
+		
 	}
-
-	curThreat = CalTotalThreat(oplastx, oplasty, cnt);
-
-	//dequeue에서 하나 찾는다
-	nextx[0] = 10;
-	nexty[0] = 10;
-	for (int i = 0; i < queueCount; i++) {
-		// nextx[0] = 
-		//
-		UpdateBoard(nextx[0], nexty[0], 1);
-		if (CalTotalThreat(oplastx, oplasty, cnt) < curThreat) {
-			processThreat = CalTotalThreat(oplastx, oplasty, cnt);
-			break;
-		}
-		else {
-			// 안좋은 값일 경우 0으로 회귀
-			UpdateBoard(nextx[0], nexty[0], 0);
-		}
-	}
-
-	for (int i = 0; i < queueCount; i++) {
-		// nextx[0] = 
-		//
-		UpdateBoard(nextx[1], nexty[1], 1);
-		if (CalTotalThreat(oplastx, oplasty, cnt) < processThreat) {
-			processThreat = CalTotalThreat(oplastx, oplasty, cnt);
-			break;
-		}
-		else {
-			// 안좋은 값일 경우 0으로 회귀
-			UpdateBoard(nextx[1], nexty[1], 0);
-		}
-	}
-
 
 
 	//curThreat = CalTotalThreat(oplastx, oplasty, cnt);
@@ -435,7 +428,6 @@ void myturn(int cnt) {
 	UpdateBoard(x[i], y[i], 1);
 	}
 	*/
-
 	domymove(x, y, cnt);
 }
 
@@ -580,7 +572,7 @@ int CalTotalThreat(int * x, int * y, int cnt) {
 		threat += threatTable[Convert3toHash(line_diaright)];
 		threat += threatTable[Convert3toHash(line_dialeft)];
 
-		fprintf_s(fp, "%d\n", threat);
+		//fprintf_s(fp, "%d\n", threat);
 	}
 
 	if (threat < 1) {
@@ -753,20 +745,31 @@ void ConvertStone(int * line_ptr, int attacker) {
 	}
 }
 
-void enqueue(int * num_entry, Struct_Score_Point que_struct)
+void enqueue(int * num_entry, Struct_Score_Point point)
 {
+	Struct_Score_Point * que_struct = (Struct_Score_Point *)malloc(sizeof(Struct_Score_Point));
+	Struct_Score_Point * temp;
+
+	que_struct->Score_Point = point.Score_Point;
+	que_struct->tempX = point.tempX;
+	que_struct->tempY = point.tempY;
+
 	if (*num_entry == 0) {
 		array_struct[*num_entry] = que_struct;
+
 	}
 	else {
-		for (int i = *num_entry; i >= 0; i--)
+		for (int i = *num_entry - 1; i >= 0; i--)
 		{
-			if (array_struct[i - 1].Score_Point < array_struct[i].Score_Point)
+			fopen_s(&fp, "C:/Users/Admin/Documents/log1.txt", "wt");
+			fprintf_s(fp, "%d %d\n", que_struct->tempX, que_struct->tempY);
+			fclose(fp);
+
+			if (que_struct->Score_Point > array_struct[i]->Score_Point)
 			{
-				Struct_Score_Point cache1 = array_struct[i];
-				Struct_Score_Point cache2 = array_struct[i - 1];
-				array_struct[i - 1] = cache1;
-				array_struct[i - 1] = cache1;
+				temp = array_struct[i];
+				array_struct[i] = que_struct;
+				array_struct[i + 1] = temp;
 			}
 			else
 			{
@@ -777,9 +780,30 @@ void enqueue(int * num_entry, Struct_Score_Point que_struct)
 	*num_entry++;
 }
 
-void dequeue(int * x, int * y, int * indicator_array)
+bool dequeue(int * x, int * y, int * entry)
 {
-	*x = array_struct[*indicator_array].tempX;
-	*y = array_struct[*indicator_array].tempX;
-	*indicator_array++;
+	if (*entry < 1)
+		return false;
+
+	*x = array_struct[0]->tempX;
+	*y = array_struct[0]->tempY;
+
+	free(array_struct[0]);
+
+	for (int i = 0; i < *entry - 1 ; i++)
+	{
+		array_struct[i] = array_struct[i + 1];
+	}
+
+	*entry--;
+	return true;
+}
+
+void EmptyQueue()
+{
+	int x, y;
+	while (dequeue(&x, &y, &num_entry))
+	{
+		;
+	}
 }
