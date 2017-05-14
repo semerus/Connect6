@@ -59,9 +59,8 @@ int player;
 // S
 // define a struct
 int num_entry = 0;
-int indicator_array = 0;
 
-Struct_Score_Point * array_struct[19*19];
+Struct_Score_Point * array_struct[400];
 // 
 FILE * fp;
 
@@ -191,7 +190,6 @@ void Score_Matrix(int xLastTemp[], int yLastTemp[], int scanLength, int playerPa
 
 	int xMax, xMin, yMax, yMin;
 
-	EmptyQueue();
 	for (int i = 0; i < 2; i++)
 	{
 		if (xLastTemp[i] == -1 || yLastTemp[i] == -1)
@@ -245,7 +243,8 @@ void Score_Matrix(int xLastTemp[], int yLastTemp[], int scanLength, int playerPa
 					point.tempX = tempX;
 					point.tempY = tempY;
 
-					enqueue(&num_entry, point);
+					fprintf_s(fp, "%d\n", num_entry);
+					enqueue(point);
 				}
 			}
 		}
@@ -334,7 +333,8 @@ void myturn(int cnt) {
 	int processThreat;
 	int nextx[2], nexty[2]; // 아직 쓰지 않은 인성이가 생각중인 변수
 
-
+	fopen_s(&fp, "C:/Users/Admin/Documents/log1.txt", "a");
+	
 							// 첫번째 턴 일 경우 threat table 작성 !! 처음의 턴임
 	if (IsFirstMove) {
 		GetInitialBoard();
@@ -353,6 +353,8 @@ void myturn(int cnt) {
 		oplastx[1] = oplasty[1] = -1;
 
 		Initialize_ScoreBoard();
+		
+		EmptyQueue();
 		Score_Matrix(oplastx, oplasty, 9, 1);
 		Find_MaxE_Position(oplastx[0], oplasty[0], 9);
 
@@ -360,7 +362,7 @@ void myturn(int cnt) {
 		y[0] = yNext;
 
 		UpdateBoard(x[0], y[0], 1);
-		
+		fclose(fp);
 		domymove(x, y, cnt);
 		return;
 
@@ -376,7 +378,7 @@ void myturn(int cnt) {
 
 	processThreat = CalTotalThreat(oplastx, oplasty, cnt);
 	
-
+	EmptyQueue();
 	for (int i = 0; i < cnt; i++)
 	{
 		if (oplastx[i] == -1 || oplasty[i] == -1)
@@ -386,10 +388,11 @@ void myturn(int cnt) {
 		}
 
 		Initialize_ScoreBoard();
+		//EmptyQueue();
 		Score_Matrix(oplastx, oplasty, 2, 2);
 		//Find_MaxE_Position(oplastx[i], oplasty[i], 2);
 
-		while (dequeue(&nextx[i], &nexty[i], &num_entry))
+		while (dequeue(&nextx[i], &nexty[i]))
 		{
 			UpdateBoard(nextx[i], nexty[i], 1);
 
@@ -428,6 +431,7 @@ void myturn(int cnt) {
 	UpdateBoard(x[i], y[i], 1);
 	}
 	*/
+	fclose(fp);
 	domymove(x, y, cnt);
 }
 
@@ -572,7 +576,6 @@ int CalTotalThreat(int * x, int * y, int cnt) {
 		threat += threatTable[Convert3toHash(line_diaright)];
 		threat += threatTable[Convert3toHash(line_dialeft)];
 
-		//fprintf_s(fp, "%d\n", threat);
 	}
 
 	if (threat < 1) {
@@ -745,8 +748,9 @@ void ConvertStone(int * line_ptr, int attacker) {
 	}
 }
 
-void enqueue(int * num_entry, Struct_Score_Point point)
+void enqueue(Struct_Score_Point point)
 {
+	int i = 0;
 	Struct_Score_Point * que_struct = (Struct_Score_Point *)malloc(sizeof(Struct_Score_Point));
 	Struct_Score_Point * temp;
 
@@ -754,55 +758,54 @@ void enqueue(int * num_entry, Struct_Score_Point point)
 	que_struct->tempX = point.tempX;
 	que_struct->tempY = point.tempY;
 
-	if (*num_entry == 0) {
-		array_struct[*num_entry] = que_struct;
-
+	if (num_entry == 0) {
+		array_struct[num_entry] = que_struct;
 	}
 	else {
-		for (int i = *num_entry - 1; i >= 0; i--)
-		{
-			fopen_s(&fp, "C:/Users/Admin/Documents/log1.txt", "wt");
-			fprintf_s(fp, "%d %d\n", que_struct->tempX, que_struct->tempY);
-			fclose(fp);
-
-			if (que_struct->Score_Point > array_struct[i]->Score_Point)
-			{
-				temp = array_struct[i];
+		for (int i = 0; i <= num_entry; i++) {
+			if (i == num_entry) {
 				array_struct[i] = que_struct;
-				array_struct[i + 1] = temp;
+				break;
 			}
-			else
-			{
+
+			if (que_struct->Score_Point > array_struct[i]->Score_Point) {
+				for (int j = num_entry; j > i; j--) {
+					array_struct[j] = array_struct[j - 1];
+				}
+				array_struct[i] = que_struct;
 				break;
 			}
 		}
 	}
-	*num_entry++;
+	num_entry++;
 }
 
-bool dequeue(int * x, int * y, int * entry)
+bool dequeue(int * x, int * y)
 {
-	if (*entry < 1)
+	Struct_Score_Point * temp;
+	if (num_entry < 1)
 		return false;
 
 	*x = array_struct[0]->tempX;
 	*y = array_struct[0]->tempY;
+	
+	temp = array_struct[0];
 
-	free(array_struct[0]);
+	free(temp);
 
-	for (int i = 0; i < *entry - 1 ; i++)
+	for (int i = 0; i < num_entry - 1 ; i++)
 	{
 		array_struct[i] = array_struct[i + 1];
 	}
 
-	*entry--;
+	num_entry--;
 	return true;
 }
 
 void EmptyQueue()
 {
 	int x, y;
-	while (dequeue(&x, &y, &num_entry))
+	while (dequeue(&x, &y))
 	{
 		;
 	}

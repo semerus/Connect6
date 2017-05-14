@@ -38,7 +38,7 @@ struct Struct_Score_Point
 	int tempY;
 };
 
-void enqueue(int * num_entry, Struct_Score_Point point);
-bool dequeue(int * x, int * y, int * entry);
+void enqueue(Struct_Score_Point point);
+bool dequeue(int * x, int * y);
 void EmptyQueue();
 
