@@ -61,7 +61,6 @@ int player;
 int num_entry = 0;
 
 Struct_Score_Point * array_struct[400];
-// 
 FILE * fp;
 
 
@@ -243,7 +242,6 @@ void Score_Matrix(int xLastTemp[], int yLastTemp[], int scanLength, int playerPa
 					point.tempX = tempX;
 					point.tempY = tempY;
 
-					fprintf_s(fp, "%d\n", num_entry);
 					enqueue(point);
 				}
 			}
@@ -376,9 +374,11 @@ void myturn(int cnt) {
 		}
 	}
 
+	// 공격체크
+
 	processThreat = CalTotalThreat(oplastx, oplasty, cnt);
 	
-	EmptyQueue();
+	
 	for (int i = 0; i < cnt; i++)
 	{
 		if (oplastx[i] == -1 || oplasty[i] == -1)
@@ -388,12 +388,13 @@ void myturn(int cnt) {
 		}
 
 		Initialize_ScoreBoard();
-		//EmptyQueue();
-		Score_Matrix(oplastx, oplasty, 2, 2);
+		EmptyQueue();
+		Score_Matrix(oplastx, oplasty, 3, 2);
 		//Find_MaxE_Position(oplastx[i], oplasty[i], 2);
 
 		while (dequeue(&nextx[i], &nexty[i]))
 		{
+			
 			UpdateBoard(nextx[i], nexty[i], 1);
 
 			if (processThreat <= 0) {
@@ -402,6 +403,7 @@ void myturn(int cnt) {
 
 			if (CalTotalThreat(oplastx, oplasty, cnt) < processThreat) {
 				processThreat = CalTotalThreat(oplastx, oplasty, cnt);
+				fprintf_s(fp, "%d \n", processThreat);
 				break;
 			}
 			else {
@@ -537,6 +539,49 @@ int FindThreat(int * line_ptr) {
 	return threat;
 }
 
+bool FindFour(int * line_ptr, int attack) {
+	int count = 0;
+	bool isFirst = true;
+	for (int i = 0; i < 6; i++) {
+		if (line_ptr[i] == attack) {
+			count++;
+		}
+		if (line_ptr[i] == 3 - attack)
+			return false;
+		if (line_ptr[i] == 3)
+			return false;
+	}
+	if (count >= 4)
+		return true;
+	else
+		return false;
+}
+
+void FillSix(int x, int y, int horizontal, int vertical, int * line) {
+	for (int i = 0; i < 6; i++) {
+		line[i] = ReadMyBoard(-2 * horizontal + x + i * horizontal, -2 * vertical + y + i * vertical);
+	}
+}
+
+void MarkWinningMove(int * x, int * y) {
+	int hor[6];
+	int ver[6];
+	int diaright[6];
+	int dialeft[6];
+
+	for (int i = 0; i < BOARDSIZE; i++) {
+		for (int j = 0; j < BOARDSIZE; j++) {
+			FillSix(i, j, 1, 0, hor);
+			FillSix(i, j, 0, 1, ver);
+			FillSix(i, j, 1, -1, diaright);
+			FillSix(i, j, 1, 1, dialeft);
+
+			/*if (FindFour(hor, 1)) {
+				for (int k = 0; )
+			}*/
+		}
+	}
+}
 
 void SearchLine(int x, int y, int horizontal, int vertical, int * line) {
 	for (int i = 0; i < PATTERNSIZE; i++) {
@@ -575,7 +620,6 @@ int CalTotalThreat(int * x, int * y, int cnt) {
 		threat += threatTable[Convert3toHash(line_ver)];
 		threat += threatTable[Convert3toHash(line_diaright)];
 		threat += threatTable[Convert3toHash(line_dialeft)];
-
 	}
 
 	if (threat < 1) {
@@ -810,3 +854,46 @@ void EmptyQueue()
 		;
 	}
 }
+
+//bool TryAttack(int x, int y, int * pointx, int * pointy) {
+//	int hor[11];
+//	int ver[11];
+//	int diaright[11];
+//	int dialeft[11];
+//
+//	int threat[4];
+//
+//
+//	SearchLine(x, y, 1, 0, hor);
+//	SearchLine(x, y, 0, 1, ver);
+//	SearchLine(x, y, 1, -1, diaright);
+//	SearchLine(x, y, 1, 1, dialeft);
+//
+//	ConvertStone(hor, 1);
+//	ConvertStone(ver, 1);
+//	ConvertStone(diaright, 1);
+//	ConvertStone(dialeft, 1);
+//
+//	threat[0] = threatTable[Convert3toHash(hor)];
+//	threat[1] = threatTable[Convert3toHash(ver)];
+//	threat[2] = threatTable[Convert3toHash(diaright)];
+//	threat[3] = threatTable[Convert3toHash(dialeft)];
+//
+//	if (threat[0] > 0) {
+//		for (int i = 0; i < PATTERNSIZE; i++) {
+//			if (hor[i] == 0) {
+//				hor[i] = 1;
+//				if (threatTable[Convert3toHash(hor)] > threat[0] || threatTable[Convert3toHash(hor)] >= 3)
+//			}
+//		}
+//		return 0;
+//	}
+//	else if (threat[1] > 0)
+//		return 1;
+//	else if (threat[2] > 0)
+//		return 2;
+//	else if (threat[3] > 0)
+//		return 3;
+//	else
+//		return -1;
+//}
