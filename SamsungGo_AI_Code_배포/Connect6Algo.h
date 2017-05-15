@@ -41,5 +41,6 @@ struct Struct_Score_Point
 void enqueue(Struct_Score_Point point);
 bool dequeue(int * x, int * y);
 void EmptyQueue();
+bool MarkWinningMove(int * x, int * y);
 //int TryAttack(int x,int y, int * pointx, int * pointy);
 

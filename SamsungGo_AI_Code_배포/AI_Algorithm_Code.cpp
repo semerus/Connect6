@@ -375,6 +375,10 @@ void myturn(int cnt) {
 	}
 
 	// 공격체크
+	if(MarkWinningMove(x, y)) {
+		domymove(x, y, cnt);
+		return;
+	}
 
 	processThreat = CalTotalThreat(oplastx, oplasty, cnt);
 	
@@ -563,11 +567,12 @@ void FillSix(int x, int y, int horizontal, int vertical, int * line) {
 	}
 }
 
-void MarkWinningMove(int * x, int * y) {
+bool MarkWinningMove(int * x, int * y) {
 	int hor[6];
 	int ver[6];
 	int diaright[6];
 	int dialeft[6];
+	int cnt = 0;
 
 	for (int i = 0; i < BOARDSIZE; i++) {
 		for (int j = 0; j < BOARDSIZE; j++) {
@@ -576,11 +581,42 @@ void MarkWinningMove(int * x, int * y) {
 			FillSix(i, j, 1, -1, diaright);
 			FillSix(i, j, 1, 1, dialeft);
 
-			/*if (FindFour(hor, 1)) {
-				for (int k = 0; )
-			}*/
+			if (FindFour(hor, 1)) {
+				for (int k = 0; k < 6; k++) {
+					if (hor[i] == 0) {
+						x[cnt++] = -2 + i + k;
+						y[cnt++] = j;
+					}
+				}
+				return true;
+			} else if (FindFour(ver, 1)) {
+				for (int k = 0; k < 6; k++) {
+					if (ver[i] == 0) {
+						x[cnt++] = i;
+						y[cnt++] = -2 + j + k;
+					}
+				}
+				return true;
+			} else if (FindFour(diaright, 1)) {
+				for (int k = 0; k < 6; k++) {
+					if (diaright[i] == 0) {
+						x[cnt++] = -2 + i + k;
+						y[cnt++] = -2 + j + k;
+					}
+				}
+				return true;
+			} else if (FindFour(dialeft, 1)) {
+				for (int k = 0; k < 6; k++) {
+					if (dialeft[i] == 0) {
+						x[cnt++] = -2 + i + k;
+						y[cnt++] = 2 + j + k;
+					}
+				}
+				return true;
+			}
 		}
 	}
+	return false;
 }
 
 void SearchLine(int x, int y, int horizontal, int vertical, int * line) {
