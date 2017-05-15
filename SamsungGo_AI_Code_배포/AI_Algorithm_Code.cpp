@@ -327,7 +327,7 @@ void Initialize_ScoreBoard()
 void myturn(int cnt) {
 	int x[2], y[2];
 
-	int curThreat;
+	
 	int processThreat;
 	int nextx[2], nexty[2]; // 아직 쓰지 않은 인성이가 생각중인 변수
 
@@ -375,10 +375,13 @@ void myturn(int cnt) {
 	}
 
 	// 공격체크
-	if(MarkWinningMove(x, y)) {
+	/*if(MarkWinningMove(x, y)) {
+		fprintf_s(fp, "%d %d", x[0], y[0]);
+		fprintf_s(fp, "%d %d", x[1], y[1]);
+		fclose(fp);
 		domymove(x, y, cnt);
 		return;
-	}
+	}*/
 
 	processThreat = CalTotalThreat(oplastx, oplasty, cnt);
 	
@@ -832,7 +835,6 @@ void enqueue(Struct_Score_Point point)
 {
 	int i = 0;
 	Struct_Score_Point * que_struct = (Struct_Score_Point *)malloc(sizeof(Struct_Score_Point));
-	Struct_Score_Point * temp;
 
 	que_struct->Score_Point = point.Score_Point;
 	que_struct->tempX = point.tempX;
